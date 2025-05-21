@@ -52,7 +52,7 @@ exports.isAuthorOrAdmin = async (req, res, next) => {
       next();
     } else {
       return res.status(403).json({ 
-        message: 'Non autorisé, vous devez être l'auteur ou un administrateur' 
+        message: "Non autorisé, vous devez être l'auteur ou un administrateur" 
       });
     }
   } catch (error) {
