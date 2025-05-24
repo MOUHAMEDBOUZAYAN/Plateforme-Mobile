@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 16,
+    marginBottom: 16,   
   },
   actionButtons: {
     gap: 10,
