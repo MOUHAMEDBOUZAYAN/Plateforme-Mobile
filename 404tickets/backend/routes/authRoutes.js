@@ -12,7 +12,7 @@ router.post(
     check('name', 'Le nom est requis').not().isEmpty(),
     check('email', 'Veuillez inclure un email valide').isEmail(),
     check('password', 'Veuillez entrer un mot de passe de 6 caractères ou plus').isLength({ min: 6 }),
-    check('phone', 'Le numéro de téléphone est requis').optional()
+    check('phone', 'Le numéro de téléphone est requis').not().isEmpty()
   ],
   authController.register
 );
