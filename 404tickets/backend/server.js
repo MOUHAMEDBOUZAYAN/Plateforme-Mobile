@@ -2,8 +2,9 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const dotenv = require('dotenv');
-const connectDB = require('./config/db');
+const connectDB = require ("./config/db.js");
 const logger = require('./middlewares/logger');
+
 
 // Charger les variables d'environnement
 dotenv.config();
