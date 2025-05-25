@@ -2,31 +2,40 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import API_URL from '../config/api';
+import { API_URL } from '../config/constants';
 
 const AuthContext = createContext();
 
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
 export const AuthProvider = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadStoredAuth();
+    checkAuth();
   }, []);
 
-  const loadStoredAuth = async () => {
+  const checkAuth = async () => {
     try {
-      const storedToken = await AsyncStorage.getItem('token');
-      const storedUser = await AsyncStorage.getItem('user');
-      
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-        axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+      const token = await AsyncStorage.getItem('token');
+      if (token) {
+        const response = await axios.get(`${API_URL}/api/auth/profile`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setUser(response.data);
+        setIsAuthenticated(true);
       }
     } catch (error) {
-      console.error('Error loading auth state:', error);
+      console.error('Auth check failed:', error);
+      await AsyncStorage.removeItem('token');
     } finally {
       setLoading(false);
     }
@@ -34,91 +43,77 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post(`${API_URL}/auth/login`, {
+      const response = await axios.post(`${API_URL}/api/auth/login`, {
         email,
-        password,
+        password
       });
-
-      const { token: newToken, ...userData } = response.data;
-      
-      await AsyncStorage.setItem('token', newToken);
-      await AsyncStorage.setItem('user', JSON.stringify(userData));
-      
-      setToken(newToken);
-      setUser(userData);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-      
+      const { token, user } = response.data;
+      await AsyncStorage.setItem('token', token);
+      setUser(user);
+      setIsAuthenticated(true);
       return { success: true };
     } catch (error) {
-      console.error('Login error:', error);
-      throw error;
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur de connexion'
+      };
     }
   };
 
   const register = async (userData) => {
     try {
-      const response = await axios.post(`${API_URL}/auth/register`, userData);
-      return response.data;
+      const response = await axios.post(`${API_URL}/api/auth/register`, userData);
+      return { success: true, data: response.data };
     } catch (error) {
-      console.error('Register error:', error);
-      throw error;
+      console.error('Registration error:', error.response?.data || error.message);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message || 'Une erreur inconnue est survenue lors de l\'inscription'
+      };
     }
   };
 
   const logout = async () => {
     try {
       await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('user');
-      setToken(null);
       setUser(null);
-      delete axios.defaults.headers.common['Authorization'];
+      setIsAuthenticated(false);
     } catch (error) {
-      console.error('Error during logout:', error);
+      console.error('Logout error:', error);
     }
   };
 
-  const updateProfile = async (data) => {
+  const updateProfile = async (profileData) => {
     try {
-      const response = await axios.put(`${API_URL}/auth/profile`, data);
-      const updatedUser = { ...user, ...response.data };
-      await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
-      setUser(updatedUser);
-      return updatedUser;
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.put(
+        `${API_URL}/api/auth/profile`,
+        profileData,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      setUser(response.data);
+      return { success: true, data: response.data };
     } catch (error) {
-      console.error('Update profile error:', error);
-      throw error;
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Erreur de mise à jour du profil'
+      };
     }
   };
 
-  const isAuthenticated = () => {
-    return !!token && !!user;
+  const value = {
+    isAuthenticated,
+    user,
+    loading,
+    login,
+    register,
+    logout,
+    updateProfile
   };
 
-  const isAdmin = () => {
-    return user?.role === 'admin';
-  };
-
-  return (
-    <AuthContext.Provider value={{ 
-      user, 
-      token, 
-      loading, 
-      login, 
-      register,
-      logout, 
-      updateProfile, 
-      isAuthenticated,
-      isAdmin 
-    }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+export default AuthContext;
