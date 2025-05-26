@@ -1,16 +1,25 @@
 // src/screens/main/TicketsScreen.js
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
-import { Text, Card, FAB, Searchbar, SegmentedButtons } from 'react-native-paper';
+import { 
+  View, 
+  StyleSheet, 
+  FlatList, 
+  TouchableOpacity, 
+  RefreshControl,
+  Animated,
+  Dimensions
+} from 'react-native';
+import { Text, Card, FAB, Searchbar, Chip, Surface } from 'react-native-paper';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
-import { StatusChip } from '../../components/StatusChip';
-import { PriorityChip } from '../../components/PriorityChip';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import { EmptyState } from '../../components/EmptyState';
 import LoadingScreen from '../../components/LoadingScreen';
 import ticketService from '../../services/ticketService';
 import { STATUS, STATUS_LABELS } from '../../constants';
+
+const { width } = Dimensions.get('window');
 
 const TicketsScreen = ({ navigation }) => {
   const [tickets, setTickets] = useState([]);
@@ -20,7 +29,17 @@ const TicketsScreen = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [error, setError] = useState('');
+  const [fadeAnim] = useState(new Animated.Value(0));
   const { user, isAdmin } = useAuth();
+
+  // Animation on mount
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 800,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   // Recharger les données quand l'écran est focalisé
   useFocusEffect(
@@ -33,9 +52,8 @@ const TicketsScreen = ({ navigation }) => {
     try {
       setError('');
       const response = await ticketService.getAllTickets();
-      const data = response.tickets; // Access the 'tickets' array from the response object
+      const data = response.tickets;
       
-      // Ensure data is an array before setting state
       if (Array.isArray(data)) {
         setTickets(data);
         setFilteredTickets(data);
@@ -47,7 +65,6 @@ const TicketsScreen = ({ navigation }) => {
       }
     } catch (error) {
       console.error('Error fetching tickets:', error);
-      // Ensure tickets state is an array even on error
       setTickets([]);
       setFilteredTickets([]);
       setError('Impossible de charger les tickets');
@@ -92,48 +109,145 @@ const TicketsScreen = ({ navigation }) => {
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) return 'Hier';
+    if (diffDays < 7) return `Il y a ${diffDays} jours`;
+    
     return date.toLocaleDateString('fr-FR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
     });
   };
 
-  const renderTicket = ({ item }) => (
-    <TouchableOpacity
-      onPress={() => navigation.navigate('TicketDetails', { ticketId: item._id })}
-    >
-      <Card style={styles.card}>
-        <Card.Content>
-          <View style={styles.cardHeader}>
-            <Text style={styles.ticketTitle} numberOfLines={2}>
-              {item.title}
-            </Text>
-            <View style={styles.chipContainer}>
-              <StatusChip status={item.status} style={styles.statusChip} />
-              <PriorityChip priority={item.priority} style={styles.priorityChip} />
-            </View>
-          </View>
-          
-          <Text numberOfLines={2} style={styles.description}>
-            {item.description}
-          </Text>
-          
-          <View style={styles.cardFooter}>
-            <View style={styles.authorInfo}>
-              <Text style={styles.authorName}>
-                {item.author?.name || item.author?.email}
-              </Text>
-              <Text style={styles.date}>
-                {formatDate(item.createdAt)}
-              </Text>
-            </View>
-          </View>
-        </Card.Content>
-      </Card>
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'pending': return ['#FFA726', '#FF7043'];
+      case 'in_progress': return ['#42A5F5', '#1976D2'];
+      case 'resolved': return ['#66BB6A', '#388E3C'];
+      case 'closed': return ['#78909C', '#546E7A'];
+      default: return ['#9E9E9E', '#757575'];
+    }
+  };
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'critical': return '#F44336';
+      case 'high': return '#FF9800';
+      case 'medium': return '#2196F3';
+      case 'low': return '#4CAF50';
+      default: return '#9E9E9E';
+    }
+  };
+
+  const StatusChip = ({ status }) => {
+    const colors = getStatusColor(status);
+    return (
+      <LinearGradient
+        colors={colors}
+        style={styles.statusChip}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+      >
+        <Text style={styles.statusChipText}>
+          {STATUS_LABELS[status] || status}
+        </Text>
+      </LinearGradient>
+    );
+  };
+
+  const PriorityDot = ({ priority }) => (
+    <View 
+      style={[
+        styles.priorityDot, 
+        { backgroundColor: getPriorityColor(priority) }
+      ]} 
+    />
+  );
+
+  const FilterChip = ({ label, value, isSelected, onPress }) => (
+    <TouchableOpacity onPress={onPress}>
+      <Chip
+        selected={isSelected}
+        onPress={onPress}
+        style={[
+          styles.filterChip,
+          isSelected && styles.selectedFilterChip
+        ]}
+        textStyle={[
+          styles.filterChipText,
+          isSelected && styles.selectedFilterChipText
+        ]}
+        selectedColor="#667eea"
+      >
+        {label}
+      </Chip>
     </TouchableOpacity>
+  );
+
+  const renderTicket = ({ item, index }) => (
+    <Animated.View
+      style={[
+        styles.ticketContainer,
+        {
+          opacity: fadeAnim,
+          transform: [
+            {
+              translateY: fadeAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [50, 0],
+              }),
+            },
+          ],
+        },
+      ]}
+    >
+      <TouchableOpacity
+        onPress={() => navigation.navigate('TicketDetails', { ticketId: item._id })}
+        activeOpacity={0.7}
+      >
+        <Surface style={styles.ticketCard} elevation={2}>
+          <LinearGradient
+            colors={['#FFFFFF', '#F8F9FA']}
+            style={styles.ticketCardGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <View style={styles.ticketHeader}>
+              <View style={styles.ticketTitleContainer}>
+                <PriorityDot priority={item.priority} />
+                <Text style={styles.ticketTitle} numberOfLines={2}>
+                  {item.title}
+                </Text>
+              </View>
+              <StatusChip status={item.status} />
+            </View>
+            
+            <Text numberOfLines={2} style={styles.ticketDescription}>
+              {item.description}
+            </Text>
+            
+            <View style={styles.ticketFooter}>
+              <View style={styles.authorInfo}>
+                {item.author ? (
+                  <Text style={styles.authorName}>
+                    👤 {item.author.name || item.author.email}
+                  </Text>
+                ) : (
+                  <Text style={styles.authorName}>👤 Auteur inconnu</Text>
+                )}
+                <Text style={styles.ticketDate}>
+                  🕒 {formatDate(item.createdAt)}
+                </Text>
+              </View>
+            </View>
+          </LinearGradient>
+        </Surface>
+      </TouchableOpacity>
+    </Animated.View>
   );
 
   if (loading) {
@@ -154,60 +268,88 @@ const TicketsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* Barre de recherche */}
-      <Searchbar
-        placeholder="Rechercher des tickets..."
-        onChangeText={setSearchQuery}
-        value={searchQuery}
-        style={styles.searchbar}
-        icon="magnify"
-        clearIcon="close"
-      />
+      {/* Header with Gradient */}
+      <LinearGradient
+        colors={['#667eea', '#764ba2']}
+        style={styles.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <Text style={styles.headerTitle}>📋 Mes Tickets</Text>
+        <Text style={styles.headerSubtitle}>
+          {filteredTickets.length} ticket{filteredTickets.length !== 1 ? 's' : ''}
+        </Text>
+      </LinearGradient>
 
-      {/* Filtres de statut */}
-      <SegmentedButtons
-        value={statusFilter}
-        onValueChange={setStatusFilter}
-        buttons={statusOptions}
-        style={styles.filterButtons}
-      />
+      {/* Search and Filters */}
+      <View style={styles.searchSection}>
+        <Searchbar
+          placeholder="🔍 Rechercher des tickets..."
+          onChangeText={setSearchQuery}
+          value={searchQuery}
+          style={styles.searchbar}
+          inputStyle={styles.searchInput}
+          icon="magnify"
+          clearIcon="close"
+        />
 
-      {/* Liste des tickets */}
+        <View style={styles.filtersContainer}>
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={statusOptions}
+            renderItem={({ item }) => (
+              <FilterChip
+                label={item.label}
+                value={item.value}
+                isSelected={statusFilter === item.value}
+                onPress={() => setStatusFilter(item.value)}
+              />
+            )}
+            keyExtractor={(item) => item.value}
+            contentContainerStyle={styles.filtersList}
+          />
+        </View>
+      </View>
+
+      {/* Tickets List */}
       {filteredTickets.length === 0 ? (
         <EmptyState
           title="Aucun ticket trouvé"
           description={
             searchQuery || statusFilter !== 'all'
-              ? "Aucun ticket ne correspond à vos critères de recherche"
+              ? "Aucun ticket ne correspond à vos critères"
               : "Vous n'avez pas encore créé de ticket"
           }
           iconName="ticket-outline"
           actionText={searchQuery || statusFilter !== 'all' ? undefined : "Créer un ticket"}
-          onAction={searchQuery || statusFilter !== 'all' ? undefined : () => navigation.navigate('Tickets', { screen: 'CreateTicket' })}
+          onAction={searchQuery || statusFilter !== 'all' ? undefined : () => navigation.navigate('CreateTicket')}
         />
       ) : (
         <FlatList
           data={filteredTickets}
           renderItem={renderTicket}
           keyExtractor={item => item._id}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={styles.ticketsList}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={['#2196F3']}
+              colors={['#667eea']}
             />
           }
           showsVerticalScrollIndicator={false}
         />
       )}
 
-      {/* Bouton flottant pour créer un ticket */}
+      {/* Floating Action Button */}
       <FAB
         style={styles.fab}
         icon="plus"
-        onPress={() => navigation.navigate('Tickets', { screen: 'CreateTicket' })}
+        onPress={() => navigation.navigate('CreateTicket')}
         label="Nouveau"
+        color="#FFFFFF"
+        customSize={56}
       />
     </View>
   );
@@ -216,53 +358,132 @@ const TicketsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F8F9FA',
   },
-  searchbar: {
-    margin: 16,
-    elevation: 2,
+  header: {
+    paddingTop: 60,
+    paddingBottom: 24,
+    paddingHorizontal: 24,
+    alignItems: 'center',
   },
-  filterButtons: {
-    marginHorizontal: 16,
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 8,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  searchSection: {
+    paddingHorizontal: 24,
+    marginTop: -12,
     marginBottom: 16,
   },
-  list: {
-    padding: 16,
-    paddingBottom: 80, // Space for FAB
+  searchbar: {
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
   },
-  card: {
-    marginBottom: 12,
-    elevation: 2,
+  searchInput: {
+    fontSize: 16,
   },
-  cardHeader: {
+  filtersContainer: {
+    marginTop: 16,
+  },
+  filtersList: {
+    paddingHorizontal: 4,
+  },
+  filterChip: {
+    marginHorizontal: 4,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  selectedFilterChip: {
+    backgroundColor: '#667eea',
+    borderColor: '#667eea',
+  },
+  filterChipText: {
+    color: '#666666',
+    fontSize: 14,
+  },
+  selectedFilterChipText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  ticketsList: {
+    paddingHorizontal: 24,
+    paddingBottom: 100,
+  },
+  ticketContainer: {
+    marginBottom: 16,
+  },
+  ticketCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  ticketCardGradient: {
+    padding: 20,
+  },
+  ticketHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: 12,
+  },
+  ticketTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 12,
+  },
+  priorityDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
   },
   ticketTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#212529',
     flex: 1,
-    marginRight: 8,
-    color: '#333',
-  },
-  chipContainer: {
-    alignItems: 'flex-end',
-    gap: 4,
+    lineHeight: 24,
   },
   statusChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
     minWidth: 80,
+    alignItems: 'center',
   },
-  priorityChip: {
-    minWidth: 80,
+  statusChipText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
   },
-  description: {
-    color: '#666',
-    marginBottom: 12,
-    lineHeight: 20,
+  ticketDescription: {
+    fontSize: 16,
+    color: '#6C757D',
+    lineHeight: 22,
+    marginBottom: 16,
   },
-  cardFooter: {
+  ticketFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -272,20 +493,26 @@ const styles = StyleSheet.create({
   },
   authorName: {
     fontSize: 14,
+    color: '#495057',
+    marginBottom: 4,
     fontWeight: '500',
-    color: '#333',
   },
-  date: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 2,
+  ticketDate: {
+    fontSize: 13,
+    color: '#868E96',
   },
   fab: {
     position: 'absolute',
     margin: 16,
     right: 0,
     bottom: 0,
-    backgroundColor: '#2196F3',
+    backgroundColor: '#667eea',
+    borderRadius: 28,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
   },
 });
 
