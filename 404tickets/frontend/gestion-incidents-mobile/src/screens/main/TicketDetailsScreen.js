@@ -150,7 +150,7 @@ const TicketDetailsScreen = ({ route, navigation }) => {
               <View style={styles.metaRow}>
                 <Text style={styles.metaLabel}>Créé par :</Text>
                 <Text style={styles.metaValue}>
-                  {ticket.author.name || ticket.author.email}
+                  {ticket.author ? (ticket.author.name || ticket.author.email) : 'Auteur inconnu'}
                 </Text>
               </View>
               <View style={styles.metaRow}>
@@ -169,7 +169,7 @@ const TicketDetailsScreen = ({ route, navigation }) => {
                 <View style={styles.metaRow}>
                   <Text style={styles.metaLabel}>Assigné à :</Text>
                   <Text style={styles.metaValue}>
-                    {ticket.assignedTo.name || ticket.assignedTo.email}
+                    {ticket.assignedTo ? (ticket.assignedTo.name || ticket.assignedTo.email) : 'Non assigné'}
                   </Text>
                 </View>
               )}
@@ -187,7 +187,7 @@ const TicketDetailsScreen = ({ route, navigation }) => {
                 <View key={index} style={styles.comment}>
                   <View style={styles.commentHeader}>
                     <Text style={styles.commentAuthor}>
-                      {comment.author.name || comment.author.email}
+                      {comment.author ? (comment.author.name || comment.author.email) : 'Auteur inconnu'}
                     </Text>
                     <Text style={styles.commentDate}>
                       {formatDate(comment.createdAt)}
