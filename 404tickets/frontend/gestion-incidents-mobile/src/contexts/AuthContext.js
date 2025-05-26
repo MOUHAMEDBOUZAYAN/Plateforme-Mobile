@@ -2,7 +2,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import { API_URL } from '../config/constants';
+import API_URL from '../config/api';
 
 const AuthContext = createContext();
 
@@ -27,10 +27,14 @@ export const AuthProvider = ({ children }) => {
     try {
       const token = await AsyncStorage.getItem('token');
       if (token) {
-        const response = await axios.get(`${API_URL}/api/auth/profile`, {
+        const response = await axios.get(`${API_URL}/auth/profile`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setUser(response.data);
+        const userData = {
+          ...response.data,
+          role: response.data.role || 'user' // Default to 'user' if role is not specified
+        };
+        setUser(userData);
         setIsAuthenticated(true);
       }
     } catch (error) {
@@ -43,13 +47,20 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post(`${API_URL}/api/auth/login`, {
+      const response = await axios.post('http://192.168.20.243:5000/api/auth/login', {
         email,
         password
       });
       const { token, user } = response.data;
+      
+      // Ensure user object has all required properties
+      const userData = {
+        ...user,
+        role: user.role || 'user' // Default to 'user' if role is not specified
+      };
+      
       await AsyncStorage.setItem('token', token);
-      setUser(user);
+      setUser(userData);
       setIsAuthenticated(true);
       return { success: true };
     } catch (error) {
@@ -62,8 +73,16 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const response = await axios.post(`${API_URL}/api/auth/register`, userData);
-      return { success: true, data: response.data };
+      console.log('start fetching register');
+      console.log(userData);
+      const response = await axios.post('http://192.168.20.243:5000/api/auth/register', userData);
+      console.log('end fetching register');
+      const { token, user } = response.data;
+      
+      await AsyncStorage.setItem('token', token);
+      setUser(user);
+      setIsAuthenticated(true);
+      return { success: true };
     } catch (error) {
       console.error('Registration error:', error.response?.data || error.message);
       return {
@@ -103,6 +122,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const isAdmin = () => {
+    return user && user.role === 'admin';
+  };
+
   const value = {
     isAuthenticated,
     user,
@@ -110,7 +133,8 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
-    updateProfile
+    updateProfile,
+    isAdmin,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

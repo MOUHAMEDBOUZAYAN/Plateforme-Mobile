@@ -22,7 +22,7 @@ exports.register = async (req, res) => {
     });
   }
 
-  const { name, email, password, phone } = req.body;
+  const { name, email, password, phone, role } = req.body;
 
   try {
     // Vérifier si l'utilisateur existe déjà
@@ -39,7 +39,8 @@ exports.register = async (req, res) => {
       name: name.trim(),
       email: email.toLowerCase(),
       password,
-      phone: phone.trim()
+      phone: phone.trim(),
+      role: role || 'user' // Default to 'user' if no role is provided
     });
 
     await user.save();

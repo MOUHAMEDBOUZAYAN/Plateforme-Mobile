@@ -4,11 +4,13 @@ import { View, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 're
 import { Text, Card, FAB, Searchbar, SegmentedButtons } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
-import { StatusChip, PriorityChip } from '../../components/ErrorMessage';
-import { ErrorMessage, EmptyState } from '../../components/ErrorMessage';
+import { StatusChip } from '../../components/StatusChip';
+import { PriorityChip } from '../../components/PriorityChip';
+import { ErrorMessage } from '../../components/ErrorMessage';
+import { EmptyState } from '../../components/EmptyState';
 import LoadingScreen from '../../components/LoadingScreen';
 import ticketService from '../../services/ticketService';
-import { TICKET_STATUS, STATUS_LABELS } from '../../constants';
+import { STATUS, STATUS_LABELS } from '../../constants';
 
 const TicketsScreen = ({ navigation }) => {
   const [tickets, setTickets] = useState([]);
@@ -30,11 +32,24 @@ const TicketsScreen = ({ navigation }) => {
   const fetchTickets = async () => {
     try {
       setError('');
-      const data = await ticketService.getAllTickets();
-      setTickets(data);
-      setFilteredTickets(data);
+      const response = await ticketService.getAllTickets();
+      const data = response.tickets; // Access the 'tickets' array from the response object
+      
+      // Ensure data is an array before setting state
+      if (Array.isArray(data)) {
+        setTickets(data);
+        setFilteredTickets(data);
+      } else {
+        console.error('Received non-array data from API:', data);
+        setTickets([]);
+        setFilteredTickets([]);
+        setError('Erreur lors du chargement des tickets: Format de données invalide');
+      }
     } catch (error) {
       console.error('Error fetching tickets:', error);
+      // Ensure tickets state is an array even on error
+      setTickets([]);
+      setFilteredTickets([]);
       setError('Impossible de charger les tickets');
     } finally {
       setLoading(false);
@@ -131,10 +146,10 @@ const TicketsScreen = ({ navigation }) => {
 
   const statusOptions = [
     { value: 'all', label: 'Tous' },
-    { value: TICKET_STATUS.PENDING, label: STATUS_LABELS[TICKET_STATUS.PENDING] },
-    { value: TICKET_STATUS.IN_PROGRESS, label: STATUS_LABELS[TICKET_STATUS.IN_PROGRESS] },
-    { value: TICKET_STATUS.RESOLVED, label: STATUS_LABELS[TICKET_STATUS.RESOLVED] },
-    { value: TICKET_STATUS.CLOSED, label: STATUS_LABELS[TICKET_STATUS.CLOSED] },
+    { value: STATUS.PENDING, label: STATUS_LABELS[STATUS.PENDING] },
+    { value: STATUS.IN_PROGRESS, label: STATUS_LABELS[STATUS.IN_PROGRESS] },
+    { value: STATUS.RESOLVED, label: STATUS_LABELS[STATUS.RESOLVED] },
+    { value: STATUS.CLOSED, label: STATUS_LABELS[STATUS.CLOSED] },
   ];
 
   return (
@@ -168,7 +183,7 @@ const TicketsScreen = ({ navigation }) => {
           }
           iconName="ticket-outline"
           actionText={searchQuery || statusFilter !== 'all' ? undefined : "Créer un ticket"}
-          onAction={searchQuery || statusFilter !== 'all' ? undefined : () => navigation.navigate('CreateTicket')}
+          onAction={searchQuery || statusFilter !== 'all' ? undefined : () => navigation.navigate('Tickets', { screen: 'CreateTicket' })}
         />
       ) : (
         <FlatList
@@ -191,7 +206,7 @@ const TicketsScreen = ({ navigation }) => {
       <FAB
         style={styles.fab}
         icon="plus"
-        onPress={() => navigation.navigate('CreateTicket')}
+        onPress={() => navigation.navigate('Tickets', { screen: 'CreateTicket' })}
         label="Nouveau"
       />
     </View>

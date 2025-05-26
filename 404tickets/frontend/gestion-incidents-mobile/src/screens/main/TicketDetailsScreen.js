@@ -3,11 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Text, Card, Button, Divider, TextInput, FAB, Menu } from 'react-native-paper';
 import { useAuth } from '../../contexts/AuthContext';
-import { StatusChip, PriorityChip } from '../../components/ErrorMessage';
+import { StatusChip } from '../../components/StatusChip';
+import { PriorityChip } from '../../components/PriorityChip';
 import { ErrorMessage } from '../../components/ErrorMessage';
 import LoadingScreen from '../../components/LoadingScreen';
 import ticketService from '../../services/ticketService';
-import { TICKET_STATUS, STATUS_LABELS, PRIORITY_LABELS } from '../../constants';
+import { STATUS, STATUS_LABELS, PRIORITY_LABELS } from '../../constants';
 
 const TicketDetailsScreen = ({ route, navigation }) => {
   const { ticketId } = route.params;
@@ -26,7 +27,7 @@ const TicketDetailsScreen = ({ route, navigation }) => {
   const fetchTicketDetails = async () => {
     try {
       setError('');
-      const response = await ticketService.getTicketById(ticketId);
+      const response = await ticketService.getTicket(ticketId);
       setTicket(response);
     } catch (error) {
       console.error('Error fetching ticket details:', error);
@@ -249,23 +250,23 @@ const TicketDetailsScreen = ({ route, navigation }) => {
             }
           >
             <Menu.Item
-              onPress={() => handleStatusChange(TICKET_STATUS.PENDING)}
-              title={STATUS_LABELS[TICKET_STATUS.PENDING]}
+              onPress={() => handleStatusChange(STATUS.PENDING)}
+              title={STATUS_LABELS[STATUS.PENDING]}
               leadingIcon="clock-outline"
             />
             <Menu.Item
-              onPress={() => handleStatusChange(TICKET_STATUS.IN_PROGRESS)}
-              title={STATUS_LABELS[TICKET_STATUS.IN_PROGRESS]}
+              onPress={() => handleStatusChange(STATUS.IN_PROGRESS)}
+              title={STATUS_LABELS[STATUS.IN_PROGRESS]}
               leadingIcon="progress-wrench"
             />
             <Menu.Item
-              onPress={() => handleStatusChange(TICKET_STATUS.RESOLVED)}
-              title={STATUS_LABELS[TICKET_STATUS.RESOLVED]}
+              onPress={() => handleStatusChange(STATUS.RESOLVED)}
+              title={STATUS_LABELS[STATUS.RESOLVED]}
               leadingIcon="check-circle-outline"
             />
             <Menu.Item
-              onPress={() => handleStatusChange(TICKET_STATUS.CLOSED)}
-              title={STATUS_LABELS[TICKET_STATUS.CLOSED]}
+              onPress={() => handleStatusChange(STATUS.CLOSED)}
+              title={STATUS_LABELS[STATUS.CLOSED]}
               leadingIcon="close-circle-outline"
             />
             <Divider />

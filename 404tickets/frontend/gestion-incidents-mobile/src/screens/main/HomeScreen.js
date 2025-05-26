@@ -30,11 +30,30 @@ const HomeScreen = ({ navigation }) => {
   const fetchStats = async () => {
     try {
       setError('');
-      const data = await ticketService.getStats();
-      setStats(data);
+      const response = await ticketService.getAllTickets();
+      const ticketsArray = Array.isArray(response.tickets) ? response.tickets : [];
+      
+      // Calculate stats from tickets data
+      const calculatedStats = {
+        totalTickets: ticketsArray.length,
+        pendingTickets: ticketsArray.filter(t => t.status === 'pending').length,
+        inProgressTickets: ticketsArray.filter(t => t.status === 'in_progress').length,
+        resolvedTickets: ticketsArray.filter(t => t.status === 'resolved').length,
+        closedTickets: ticketsArray.filter(t => t.status === 'closed').length
+      };
+      
+      setStats(calculatedStats);
     } catch (error) {
       console.error('Error fetching stats:', error);
       setError('Impossible de charger les statistiques');
+      // Set default empty values on error
+      setStats({
+        totalTickets: 0,
+        pendingTickets: 0,
+        inProgressTickets: 0,
+        resolvedTickets: 0,
+        closedTickets: 0
+      });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -94,7 +113,7 @@ const HomeScreen = ({ navigation }) => {
       <View style={styles.statsContainer}>
         <Card style={styles.statsCard}>
           <Card.Content style={styles.statsCardContent}>
-            <Text style={styles.statsNumber}>{stats.totalTickets}</Text>
+            <Text style={styles.statsNumber}>{stats.totalTickets || 0}</Text>
             <Text style={styles.statsLabel}>Total</Text>
           </Card.Content>
         </Card>
@@ -102,7 +121,7 @@ const HomeScreen = ({ navigation }) => {
         <Card style={[styles.statsCard, { backgroundColor: '#FFC107' }]}>
           <Card.Content style={styles.statsCardContent}>
             <Text style={[styles.statsNumber, styles.whiteText]}>
-              {stats.pendingTickets}
+              {stats.pendingTickets || 0}
             </Text>
             <Text style={[styles.statsLabel, styles.whiteText]}>En attente</Text>
           </Card.Content>
@@ -111,7 +130,7 @@ const HomeScreen = ({ navigation }) => {
         <Card style={[styles.statsCard, { backgroundColor: '#2196F3' }]}>
           <Card.Content style={styles.statsCardContent}>
             <Text style={[styles.statsNumber, styles.whiteText]}>
-              {stats.inProgressTickets}
+              {stats.inProgressTickets || 0}
             </Text>
             <Text style={[styles.statsLabel, styles.whiteText]}>En cours</Text>
           </Card.Content>
@@ -120,9 +139,18 @@ const HomeScreen = ({ navigation }) => {
         <Card style={[styles.statsCard, { backgroundColor: '#4CAF50' }]}>
           <Card.Content style={styles.statsCardContent}>
             <Text style={[styles.statsNumber, styles.whiteText]}>
-              {stats.resolvedTickets}
+              {stats.resolvedTickets || 0}
             </Text>
             <Text style={[styles.statsLabel, styles.whiteText]}>Résolus</Text>
+          </Card.Content>
+        </Card>
+
+        <Card style={[styles.statsCard, { backgroundColor: '#9E9E9E' }]}>
+          <Card.Content style={styles.statsCardContent}>
+            <Text style={[styles.statsNumber, styles.whiteText]}>
+              {stats.closedTickets || 0}
+            </Text>
+            <Text style={[styles.statsLabel, styles.whiteText]}>Clôturés</Text>
           </Card.Content>
         </Card>
       </View>
@@ -134,7 +162,7 @@ const HomeScreen = ({ navigation }) => {
         <View style={styles.actionButtons}>
           <Button
             mode="contained"
-            icon="ticket-plus"
+            icon="ticket-plus-outline"
             onPress={() => navigation.navigate('Tickets', { 
               screen: 'CreateTicket' 
             })}

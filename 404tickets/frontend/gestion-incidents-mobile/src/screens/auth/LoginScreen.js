@@ -3,6 +3,9 @@ import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { TextInput, Button, Text } from 'react-native-paper';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigation } from '@react-navigation/native';
+
+
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -13,6 +16,7 @@ const LoginScreen = ({ navigation }) => {
   const { login } = useAuth();
 
   const handleLogin = async () => {
+    console.log('start fetching login');
     if (!email || !password) {
       setError('Veuillez remplir tous les champs');
       return;
@@ -27,6 +31,8 @@ const LoginScreen = ({ navigation }) => {
       setLoading(true);
       setError('');
       await login(email, password);
+      console.log('end fetching login');
+      navigation.navigate('Home');
       // La navigation sera automatique grâce au AuthContext
     } catch (err) {
       console.error('Login error:', err);

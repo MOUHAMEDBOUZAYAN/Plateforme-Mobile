@@ -4,10 +4,10 @@ import { Platform } from 'react-native';
 // Configuration des URLs selon l'environnement
 const API_CONFIGS = {
   development: {
-    android: 'http://10.0.2.2:5000/api',
-    ios: 'http://localhost:5000/api',
+    android: 'http://192.168.20.243:5000/api',
+    ios: 'http://192.168.20.243:5000/api',
     // Remplacez YOUR_LOCAL_IP par votre IP locale (ex: 192.168.1.100)
-    physical: 'http://YOUR_LOCAL_IP:5000/api',
+    physical: 'http://192.168.20.243:5000/api',
   },
   production: {
     // Remplacez par l'URL de votre API en production

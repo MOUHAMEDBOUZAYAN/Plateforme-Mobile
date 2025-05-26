@@ -30,12 +30,32 @@ const AdminDashboardScreen = () => {
         ticketService.getAllUsers(),
       ]);
       
-      setTickets(ticketsData);
-      setStats(statsData);
-      setUsers(usersData);
+      // Ensure ticketsData is an array
+      const ticketsArray = Array.isArray(ticketsData) ? ticketsData : [];
+      setTickets(ticketsArray);
+      
+      // Calculate stats from tickets data
+      const calculatedStats = {
+        totalTickets: ticketsArray.length,
+        pendingTickets: ticketsArray.filter(t => t.status === 'pending').length,
+        inProgressTickets: ticketsArray.filter(t => t.status === 'in_progress').length,
+        resolvedTickets: ticketsArray.filter(t => t.status === 'resolved').length,
+        ...statsData // Keep any additional stats from the API
+      };
+      
+      setStats(calculatedStats);
+      setUsers(Array.isArray(usersData) ? usersData : []);
     } catch (error) {
       console.error('Error fetching admin data:', error);
       setError('Impossible de charger les données d\'administration');
+      setTickets([]);
+      setStats({
+        totalTickets: 0,
+        pendingTickets: 0,
+        inProgressTickets: 0,
+        resolvedTickets: 0
+      });
+      setUsers([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -67,15 +87,15 @@ const AdminDashboardScreen = () => {
     }
   };
 
-  const filteredTickets = tickets.filter(ticket =>
+  const filteredTickets = Array.isArray(tickets) ? tickets.filter(ticket =>
     ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    ticket.author.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    ticket.author?.email?.toLowerCase().includes(searchQuery.toLowerCase())
+  ) : [];
 
-  const filteredUsers = users.filter(user =>
+  const filteredUsers = Array.isArray(users) ? users.filter(user =>
     user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (user.name && user.name.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  ) : [];
 
   if (loading) {
     return (
@@ -156,6 +176,15 @@ const AdminDashboardScreen = () => {
                     {stats.inProgressTickets || 0}
                   </Text>
                   <Text style={[styles.statLabel, styles.whiteText]}>En cours</Text>
+                </Card.Content>
+              </Card>
+
+              <Card style={[styles.statCard, { backgroundColor: '#4CAF50' }]}>
+                <Card.Content style={styles.statCardContent}>
+                  <Text style={[styles.statNumber, styles.whiteText]}>
+                    {stats.resolvedTickets || 0}
+                  </Text>
+                  <Text style={[styles.statLabel, styles.whiteText]}>Résolus</Text>
                 </Card.Content>
               </Card>
             </View>

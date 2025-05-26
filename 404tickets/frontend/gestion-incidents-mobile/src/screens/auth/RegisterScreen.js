@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { TextInput, Button, Text, HelperText } from 'react-native-paper';
+import { TextInput, Button, Text, HelperText, SegmentedButtons } from 'react-native-paper';
 import { useAuth } from '../../contexts/AuthContext';
 
 const RegisterScreen = ({ navigation }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setphone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState('user');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -38,7 +40,7 @@ const RegisterScreen = ({ navigation }) => {
     try {
       setLoading(true);
       setError('');
-      const result = await register({ name, email, password });
+      const result = await register({ name, email, password, phone, role });
       if (result.success) {
         navigation.navigate('Login');
       } else {
@@ -69,6 +71,13 @@ const RegisterScreen = ({ navigation }) => {
             label="Nom complet"
             value={name}
             onChangeText={setName}
+            mode="outlined"
+            style={styles.input}
+          />
+          <TextInput
+            label="phone"
+            value={phone}
+            onChangeText={setphone}
             mode="outlined"
             style={styles.input}
           />
@@ -106,6 +115,19 @@ const RegisterScreen = ({ navigation }) => {
             secureTextEntry={!showPassword}
             style={styles.input}
           />
+
+          <View style={styles.roleContainer}>
+            <Text style={styles.roleLabel}>Type de compte</Text>
+            <SegmentedButtons
+              value={role}
+              onValueChange={setRole}
+              buttons={[
+                { value: 'user', label: 'Utilisateur' },
+                { value: 'admin', label: 'Administrateur' },
+              ]}
+              style={styles.roleButtons}
+            />
+          </View>
 
           {error ? (
             <HelperText type="error" visible={!!error}>
@@ -166,6 +188,17 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: 16,
+  },
+  roleContainer: {
+    marginBottom: 16,
+  },
+  roleLabel: {
+    fontSize: 16,
+    marginBottom: 8,
+    color: '#666',
+  },
+  roleButtons: {
+    marginBottom: 8,
   },
   button: {
     marginTop: 8,
