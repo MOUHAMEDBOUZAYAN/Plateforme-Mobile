@@ -3,12 +3,12 @@ import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { TextInput, Button, Text, HelperText, SegmentedButtons } from 'react-native-paper';
 import ticketService from '../../services/ticketService';
-import { TICKET_PRIORITY, PRIORITY_LABELS } from '../../constants';
+import { PRIORITY, PRIORITY_LABELS } from '../../constants';
 
 const CreateTicketScreen = ({ navigation }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState(TICKET_PRIORITY.MEDIUM);
+  const [priority, setPriority] = useState(PRIORITY.MEDIUM);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
@@ -71,20 +71,20 @@ const CreateTicketScreen = ({ navigation }) => {
 
   const priorityOptions = [
     {
-      value: TICKET_PRIORITY.LOW,
-      label: PRIORITY_LABELS[TICKET_PRIORITY.LOW],
+      value: PRIORITY.LOW,
+      label: PRIORITY_LABELS[PRIORITY.LOW],
     },
     {
-      value: TICKET_PRIORITY.MEDIUM,
-      label: PRIORITY_LABELS[TICKET_PRIORITY.MEDIUM],
+      value: PRIORITY.MEDIUM,
+      label: PRIORITY_LABELS[PRIORITY.MEDIUM],
     },
     {
-      value: TICKET_PRIORITY.HIGH,
-      label: PRIORITY_LABELS[TICKET_PRIORITY.HIGH],
+      value: PRIORITY.HIGH,
+      label: PRIORITY_LABELS[PRIORITY.HIGH],
     },
     {
-      value: TICKET_PRIORITY.CRITICAL,
-      label: PRIORITY_LABELS[TICKET_PRIORITY.CRITICAL],
+      value: PRIORITY.CRITICAL,
+      label: PRIORITY_LABELS[PRIORITY.CRITICAL],
     },
   ];
 

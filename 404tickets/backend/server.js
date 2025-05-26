@@ -126,7 +126,7 @@ process.on('SIGINT', () => {
 // Port et démarrage du serveur
 const PORT = process.env.PORT || 5000;
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`
 🚀 Serveur 404 Tickets démarré avec succès !
 📡 Port: ${PORT}
